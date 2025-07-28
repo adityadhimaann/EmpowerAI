@@ -1,0 +1,328 @@
+@layer components {
+  .glass-dark {
+    background-color: rgba(var(--bg-secondary-rgb, 17, 24, 39), 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.1);
+    transition-property: all;
+    transition-duration: 300ms;
+
+
+  .btn-primary {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        background-color: var(--accent-blue, #3b82f6);
+        color: var(--bg-primary, #fff);
+        font-weight: 600;
+        border-radius: 0.5rem;
+        transition-property: all;
+        transition-duration: 300ms;
+    }
+    .btn-primary:hover {
+        background-color: var(--accent-blue, #3b82f6);
+        opacity: 0.9;
+        box-shadow: 0 0 8px 2px var(--accent-blue, #3b82f6);
+    }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    border: 1px solid var(--accent-blue, #3b82f6);
+    color: var(--accent-blue, #3b82f6);
+    font-weight: 600;
+    border-radius: 0.5rem;
+    transition-property: all;
+    transition-duration: 300ms;
+    background: transparent;
+  }
+
+  .input-dark {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background-color: rgba(var(--blue-dark-rgb, 30, 41, 59), 0.5);
+    border: 1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.1);
+    border-radius: 0.5rem;
+    color: var(--text-primary, #fff);
+    transition-property: all;
+    transition-duration: 300ms;
+  }
+
+  .card-dark {
+    background-color: rgba(var(--bg-secondary-rgb, 17, 24, 39), 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.1);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    transition-property: all;
+    transition-duration: 300ms;
+  }
+
+  .heading-gradient {
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-image: linear-gradient(to right, var(--text-primary, #fff), var(--accent-blue, #3b82f6), var(--text-primary, #fff));
+    background-size: 200% 100%;
+    animation: code-shimmer 2s linear infinite;
+  }
+  .input-dark::placeholder {
+    color: rgba(var(--secondary-rgb, 156, 163, 175), 0.5);
+  }
+  .input-dark:focus {
+    outline: none;
+    border-color: var(--accent-blue, #3b82f6);
+    box-shadow: 0 0 0 1px var(--accent-blue, #3b82f6);
+  }
+  .btn-secondary:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  /* If you are using Tailwind CSS, move these @apply rules to a separate file or a dedicated Tailwind layer. 
+     If not using Tailwind, remove these lines. Example for Tailwind users: */
+  
+  @layer components {
+    .btn-secondary {
+      @apply px-4 py-2 border border-accent-blue text-accent-blue font-semibold rounded-lg
+             hover:bg-accent-blue/10 transition-all duration-300
+             disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+  
+    .input-dark {
+      @apply w-full px-4 py-2 bg-blue-dark/50 border border-text-primary/10 rounded-lg
+             text-text-primary placeholder:text-secondary/50
+             focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue
+             transition-all duration-300;
+    }
+  
+    .card-dark {
+      @apply glass-dark p-6 rounded-lg hover:scale-[1.02]
+             hover:shadow-glow transition-all duration-300;
+    }
+  
+    .heading-gradient {
+      @apply text-transparent bg-clip-text bg-gradient-to-r
+             from-text-primary via-accent-blue to-text-primary
+             bg-[length:200%] animate-shimmer;
+    }
+  }
+
+  /* Enhanced animations for code structure mode */
+  @keyframes code-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 0.95; }
+  }
+
+  @keyframes dash {
+    0%, 100% { opacity: 0.3; transform: translateY(0px); }
+    50% { opacity: 0.8; transform: translateY(-2px); }
+  }
+
+  @keyframes matrix-rain {
+    0% { transform: translateY(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+
+  @keyframes code-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes scan-line {
+    0% { transform: translateY(0); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+
+  @keyframes terminal-boot {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.95);
+      filter: brightness(0.5);
+    }
+    50% { 
+      opacity: 0.8; 
+      transform: scale(1.02);
+      filter: brightness(1.2);
+    }
+    100% { 
+      opacity: 1; 
+      transform: scale(1);
+      filter: brightness(1);
+    }
+  }
+
+  @keyframes glitch {
+    0%, 100% { 
+      transform: translate(0);
+      filter: hue-rotate(0deg);
+    }
+    10% { 
+      transform: translate(-2px, 2px);
+      filter: hue-rotate(90deg);
+    }
+    20% { 
+      transform: translate(-2px, -2px);
+      filter: hue-rotate(180deg);
+    }
+    30% { 
+      transform: translate(2px, 2px);
+      filter: hue-rotate(270deg);
+    }
+    40% { 
+      transform: translate(2px, -2px);
+      filter: hue-rotate(360deg);
+    }
+  }
+
+  @keyframes code-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+
+  /* Fast typewriter effect for code generation */
+  @keyframes fast-typewriter {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  @keyframes blink-cursor {
+    0%, 50% { border-color: transparent; }
+    51%, 100% { border-color: #22d3ee; }
+  }
+
+  @keyframes code-reveal {
+    0% { 
+      opacity: 0; 
+      transform: translateY(10px);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes file-tab-slide {
+    0% { 
+      transform: translateX(-100%); 
+      opacity: 0; 
+    }
+    100% { 
+      transform: translateX(0); 
+      opacity: 1; 
+    }
+  }
+
+  .animate-code-pulse {
+    animation: code-pulse 1.5s ease-in-out infinite;
+  }
+
+  .animate-dash {
+    animation: dash 2s ease-in-out infinite;
+  }
+
+  .animate-matrix-rain {
+    animation: matrix-rain 3s linear infinite;
+  }
+
+  .animate-code-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+    background-size: 200% 100%;
+    animation: code-shimmer 2s ease-in-out infinite;
+  }
+
+  .animate-terminal-boot {
+    animation: terminal-boot 0.8s ease-out forwards;
+  }
+
+  .animate-glitch {
+    animation: glitch 0.3s ease-in-out;
+  }
+
+  .animate-code-flicker {
+    animation: code-flicker 0.1s ease-in-out infinite;
+  }
+
+  /* Fast typewriter animation classes */
+  .fast-typewriter {
+    overflow: hidden;
+    white-space: pre;
+    border-right: 2px solid #22d3ee;
+    width: 0;
+    font-family: 'Courier New', monospace;
+    animation: fast-typewriter 0.8s steps(40, end) forwards,
+               blink-cursor 1s step-end infinite;
+  }
+
+  .fast-typewriter-slow {
+    overflow: hidden;
+    white-space: pre;
+    border-right: 2px solid #22d3ee;
+    width: 0;
+    font-family: 'Courier New', monospace;
+    animation: fast-typewriter 1.5s steps(60, end) forwards,
+               blink-cursor 1s step-end infinite;
+  }
+
+  .code-reveal {
+    opacity: 0;
+    animation: code-reveal 0.3s ease-out forwards;
+  }
+
+  .file-tab-slide {
+    opacity: 0;
+    transform: translateX(-100%);
+    animation: file-tab-slide 0.4s ease-out forwards;
+  }
+
+  /* Staggered animation delays for multiple files */
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  .delay-500 { animation-delay: 0.5s; }
+  .delay-600 { animation-delay: 0.6s; }
+  .delay-700 { animation-delay: 0.7s; }
+  .delay-800 { animation-delay: 0.8s; }
+  .delay-900 { animation-delay: 0.9s; }
+  .delay-1000 { animation-delay: 1.0s; }
+
+  /* Terminal-like code container */
+  .code-terminal {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    color: #00ff00;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .code-terminal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+    animation: scan-line 2s ease-in-out infinite;
+  }
+}

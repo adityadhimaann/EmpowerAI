@@ -1,0 +1,6 @@
+{
+  "name": "EmpowerAI: Hackathon Pitch Generator",
+  "description": "EmpowerAI is an immersive, slide-based web presentation platform designed for hackathon project pitches, optimized for accessibility and cognitive clarity. It uses AI to generate compelling presentations from a simple project idea.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

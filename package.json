@@ -1,0 +1,32 @@
+{
+  "name": "empowerai:-hackathon-pitch-generator",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "@google/genai": "^1.11.0",
+    "esbuild-wasm": "^0.25.8",
+    "jszip": "3.10.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-syntax-highlighter": "15.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "postcss-nested": "^7.0.2",
+    "tailwindcss": "^3.3.3",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
+}
