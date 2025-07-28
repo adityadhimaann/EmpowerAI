@@ -46,7 +46,21 @@ npm run dev
 
 ## 🌐 Deployment
 
-### Deploy to Vercel (Recommended)
+### Deploy to Netlify (Recommended)
+
+1. Fork this repository to your GitHub account
+
+2. Connect your GitHub repository to Netlify:
+   - Visit [netlify.com](https://netlify.com)
+   - Click "New site from Git"
+   - Choose GitHub and select your repository
+   - Build settings are automatically detected from `netlify.toml`
+   - Add environment variable: `API_KEY` with your Google Gemini API key
+   - Deploy!
+
+3. Your app will be live at `https://your-app-name.netlify.app`
+
+### Deploy to Vercel (Alternative)
 
 1. Fork this repository to your GitHub account
 
