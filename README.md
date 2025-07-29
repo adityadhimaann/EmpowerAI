@@ -34,7 +34,7 @@ npm install
 3. Set up environment variables:
 ```bash
 # Create .env file
-echo "API_KEY=your_google_gemini_api_key_here" > .env
+echo "VITE_API_KEY=your_google_gemini_api_key_here" > .env
 ```
 
 4. Run the development server:
@@ -55,7 +55,7 @@ npm run dev
    - Click "New site from Git"
    - Choose GitHub and select your repository
    - Build settings are automatically detected from `netlify.toml`
-   - Add environment variable: `API_KEY` with your Google Gemini API key
+   - Add environment variable: `VITE_API_KEY` with your Google Gemini API key
    - Deploy!
 
 3. Your app will be live at `https://your-app-name.netlify.app`
@@ -68,14 +68,14 @@ npm run dev
    - Visit [vercel.com](https://vercel.com)
    - Click "New Project"
    - Import your GitHub repository
-   - Add environment variable: `API_KEY` with your Google Gemini API key
+   - Add environment variable: `VITE_API_KEY` with your Google Gemini API key
    - Deploy!
 
 3. Your app will be live at `https://your-project-name.vercel.app`
 
 ### Environment Variables
 
-- `API_KEY`: Your Google Gemini API key (required)
+- `VITE_API_KEY`: Your Google Gemini API key (required)
 
 ## 🛠️ Tech Stack
 

@@ -1,11 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SlideData, RepoNode, TemplateData } from '../types';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
+if (!import.meta.env.VITE_API_KEY) {
+    throw new Error("VITE_API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 
 const presentationSchema = {
     type: Type.ARRAY,
