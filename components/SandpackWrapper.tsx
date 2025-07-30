@@ -211,22 +211,24 @@ code {
     console.log('Files structure:', sandpackFiles);
 
     return (
-        <div className="h-full">
+        <div className="h-full w-full">
             <SandpackErrorBoundary>
                 <Sandpack
                     template="react-ts"
                     files={sandpackFiles}
                     options={{
-                        showNavigator: false,
+                        showNavigator: true,
                         showTabs: true,
                         showLineNumbers: true,
                         showInlineErrors: true,
                         showConsole: true,
                         showConsoleButton: true,
-                        editorHeight: '100%',
+                        editorHeight: '400px',
+                        editorWidthPercentage: 50,
                         autorun: true,
                         recompileMode: 'immediate',
                         recompileDelay: 300,
+                        bundlerURL: 'https://sandpack-bundler.codesandbox.io',
                         externalResources: [
                             "https://cdn.tailwindcss.com/3.3.6"
                         ]

@@ -21,8 +21,8 @@ const SamvadAI: React.FC<SamvadAIProps> = ({
   isOpen, 
   onClose, 
   repoStructure, 
-  generatedCode, 
-  projectIdea 
+  generatedCode: _generatedCode, 
+  projectIdea: _projectIdea 
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {

@@ -21,6 +21,7 @@ const TypewriterCode: React.FC<TypewriterCodeProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const indexRef = useRef(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Reset state when code changes
@@ -45,7 +46,18 @@ const TypewriterCode: React.FC<TypewriterCodeProps> = ({
       if (indexRef.current < code.length) {
         // Add multiple characters at once for better performance with large files
         const charsToAdd = Math.min(3, code.length - indexRef.current);
-        setDisplayedCode(prev => prev + code.slice(indexRef.current, indexRef.current + charsToAdd));
+        setDisplayedCode(prev => {
+          const newCode = prev + code.slice(indexRef.current, indexRef.current + charsToAdd);
+          
+          // Auto-scroll to bottom
+          setTimeout(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            }
+          }, 0);
+          
+          return newCode;
+        });
         indexRef.current += charsToAdd;
       } else {
         // Animation complete
@@ -82,14 +94,14 @@ const TypewriterCode: React.FC<TypewriterCodeProps> = ({
   const codeWithCursor = displayedCode + (showCursor && !isComplete ? '|' : '');
 
   return (
-    <div className={className}>
+    <div ref={containerRef} className={`${className} custom-scrollbar`} style={{ overflow: 'auto' }}>
       <SyntaxHighlighter
         language={language}
         style={vscDarkPlus}
         customStyle={{
           background: 'transparent',
           width: '100%',
-          height: '100%',
+          minHeight: '100%',
           padding: '1rem',
           margin: '0',
         }}

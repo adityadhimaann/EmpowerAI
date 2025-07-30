@@ -94,3 +94,41 @@ export interface PresentationTheme {
 }
 
 export type GeneratedCode = Map<string, string>;
+
+// Enhanced types for advanced AI service features
+export interface FileAnalysis {
+  complexity: number;
+  maintainability: number;
+  dependencies: string[];
+  suggestedRefactoring?: string[];
+}
+
+export interface CodeQuality {
+  score: number;
+  metrics: {
+    complexity: number;
+    maintainability: number;
+    testability: number;
+    performance: number;
+    security: number;
+  };
+  suggestions: Array<{
+    type: 'error' | 'warning' | 'suggestion';
+    message: string;
+    line?: number;
+    fix?: string;
+  }>;
+  bestPractices: string[];
+}
+
+export interface ProjectMetadata {
+  title: string;
+  description: string;
+  estimatedDuration: number;
+  targetAudience: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  tags: string[];
+  framework?: string;
+  language?: string;
+  complexity?: 'Simple' | 'Moderate' | 'Complex' | 'Enterprise';
+}

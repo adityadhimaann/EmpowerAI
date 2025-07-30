@@ -133,8 +133,9 @@ const App: React.FC = () => {
     
     try {
       if (mode === 'pitch') {
-        const generatedSlides = await generatePresentation(idea, template);
-        if (generatedSlides && generatedSlides.length > 0) {
+        const generatedResult = await generatePresentation(idea, template);
+        const generatedSlides = generatedResult?.slides || generatedResult;
+        if (generatedSlides && Array.isArray(generatedSlides) && generatedSlides.length > 0) {
           const newId = new Date().toISOString();
           const now = new Date().toISOString();
           const newHistoryItem: HistoryItem = { 
@@ -186,7 +187,8 @@ const App: React.FC = () => {
         setGenerationProgress(prev => ({ ...prev, currentFile: path, completed: i }));
         
         try {
-          const content = await generateFileContent(projectIdea, repoStructure, path);
+          const result = await generateFileContent(projectIdea, repoStructure, path);
+          const content = typeof result === 'string' ? result : result.content;
           codeMap.set(path, content);
         } catch (fileError: any) {
           console.warn(`Failed to generate ${path}:`, fileError);

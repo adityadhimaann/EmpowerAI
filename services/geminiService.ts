@@ -1,35 +1,91 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { SlideData, RepoNode, TemplateData } from '../types';
+import { SlideData, RepoNode, TemplateData, CodeQuality } from '../types';
 
-if (!import.meta.env.VITE_API_KEY) {
+// Enhanced environment validation
+const validateEnvironment = () => {
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
     throw new Error("VITE_API_KEY environment variable not set");
-}
+  }
+  if (apiKey.length < 20) {
+    throw new Error("Invalid API key format");
+  }
+  return apiKey;
+};
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+const ai = new GoogleGenAI({ apiKey: validateEnvironment() });
 
+// Enhanced schemas with validation and metadata
 const presentationSchema = {
-    type: Type.ARRAY,
-    items: {
+  type: Type.OBJECT,
+  properties: {
+    metadata: {
       type: Type.OBJECT,
       properties: {
-        title: {
-          type: Type.STRING,
-          description: "A concise and engaging title for the slide.",
-        },
-        content: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-          },
-          description: "An array of 3-4 bullet points for the slide content. Each point should be a complete sentence.",
-        },
-        speakerNotes: {
-            type: Type.STRING,
-            description: "Brief speaker notes for the presenter for this slide."
-        }
+        title: { type: Type.STRING },
+        description: { type: Type.STRING },
+        estimatedDuration: { type: Type.NUMBER },
+        targetAudience: { type: Type.STRING },
+        difficulty: { type: Type.STRING, enum: ['Beginner', 'Intermediate', 'Advanced'] },
+        tags: { type: Type.ARRAY, items: { type: Type.STRING } }
       },
-      required: ["title", "content"],
+      required: ["title", "description", "estimatedDuration", "targetAudience", "difficulty"]
     },
+    slides: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          title: {
+            type: Type.STRING,
+            description: "A compelling, action-oriented title that captures attention",
+          },
+          subtitle: {
+            type: Type.STRING,
+            description: "An optional subtitle for additional context"
+          },
+          content: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "3-5 impactful bullet points, each a complete, engaging sentence",
+          },
+          speakerNotes: {
+            type: Type.STRING,
+            description: "Detailed speaker notes with timing, emphasis, and transition cues"
+          },
+          slideType: {
+            type: Type.STRING,
+            enum: ['title', 'content', 'comparison', 'demo', 'closing'],
+            description: "The type of slide for better formatting"
+          },
+          visualSuggestions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Suggestions for visuals, charts, or graphics"
+          },
+          keyTakeaways: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "1-2 key points the audience should remember"
+          }
+        },
+        required: ["id", "title", "content", "speakerNotes", "slideType"],
+      },
+    },
+    transitions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          fromSlide: { type: Type.STRING },
+          toSlide: { type: Type.STRING },
+          transitionText: { type: Type.STRING }
+        }
+      }
+    }
+  },
+  required: ["metadata", "slides"]
 };
 
 const repoStructureSchema = {
@@ -37,124 +93,726 @@ const repoStructureSchema = {
   properties: {
     name: { type: Type.STRING },
     type: { type: Type.STRING, enum: ['folder'] },
+    description: { type: Type.STRING },
+    metadata: {
+      type: Type.OBJECT,
+      properties: {
+        framework: { type: Type.STRING },
+        language: { type: Type.STRING },
+        packageManager: { type: Type.STRING },
+        buildTool: { type: Type.STRING },
+        estimatedFiles: { type: Type.NUMBER },
+        complexity: { type: Type.STRING, enum: ['Simple', 'Moderate', 'Complex', 'Enterprise'] }
+      }
+    },
     children: {
       type: Type.ARRAY,
       items: {
-        // Level 1 nodes
         type: Type.OBJECT,
         properties: {
           name: { type: Type.STRING },
           type: { type: Type.STRING, enum: ['folder', 'file'] },
+          description: { type: Type.STRING },
+          purpose: { type: Type.STRING },
+          priority: { type: Type.STRING, enum: ['critical', 'important', 'optional'] },
           children: {
             type: Type.ARRAY,
             items: {
-              // Level 2 nodes
               type: Type.OBJECT,
               properties: {
                 name: { type: Type.STRING },
                 type: { type: Type.STRING, enum: ['folder', 'file'] },
+                description: { type: Type.STRING },
+                purpose: { type: Type.STRING },
+                priority: { type: Type.STRING, enum: ['critical', 'important', 'optional'] },
                 children: {
                   type: Type.ARRAY,
                   items: {
-                    // Level 3 nodes
                     type: Type.OBJECT,
                     properties: {
                       name: { type: Type.STRING },
                       type: { type: Type.STRING, enum: ['folder', 'file'] },
+                      description: { type: Type.STRING },
+                      purpose: { type: Type.STRING },
+                      priority: { type: Type.STRING, enum: ['critical', 'important', 'optional'] }
                     },
-                    required: ["name", "type"],
-                  },
-                },
+                    required: ["name", "type", "purpose"]
+                  }
+                }
               },
-              required: ["name", "type"],
-            },
-          },
+              required: ["name", "type", "purpose"]
+            }
+          }
         },
-        required: ["name", "type"],
-      },
-    },
+        required: ["name", "type", "purpose"]
+      }
+    }
   },
-  required: ["name", "type", "children"],
+  required: ["name", "type", "description", "metadata", "children"]
 };
 
-
-export const generatePresentation = async (projectIdea: string, template?: TemplateData): Promise<SlideData[]> => {
-  try {
-    let prompt = '';
-    
-    if (template) {
-      // Generate based on template structure
-      prompt = `
-        You are an expert presentation creator. Create a compelling presentation based on the user's project idea using the provided template structure.
-        
-        Template: ${template.name}
-        Template Description: ${template.description}
-        Template Category: ${template.category}
-        
-        Template Structure:
-        ${template.slides.map((slide: any, index: number) => `
-        - Slide ${index + 1}: ${slide.title} (${slide.content?.join(', ') || 'Create relevant content'})
-        `).join('')}
-        
-        Create exactly ${template.slides.length} slides following this structure. For each slide, create:
-        1. A compelling title based on the template structure
-        2. 3-4 bullet points of content relevant to the project idea
-        3. Brief and engaging speaker notes
-        
-        Make sure the content is specifically tailored to: "${projectIdea}"
-        
-        The presentation should be professional, engaging, and follow the ${template.category} category style.
-      `;
-    } else {
-      // Default hackathon pitch deck structure
-      prompt = `
-        You are an expert pitch deck creator for tech hackathons. Your task is to generate a compelling 5-slide presentation based on the user's project idea.
-        The presentation must follow this structure:
-        - Slide 1: The Problem (Hook the audience by clearly defining the problem).
-        - Slide 2: Our Solution (Introduce the project as the clear solution).
-        - Slide 3: Key Features (Showcase the 3-4 most impactful features).
-        - Slide 4: Tech Stack & Architecture (Briefly explain the technology used).
-        - Slide 5: Impact & Vision (End with a strong call to action or future vision).
-        
-        For each slide, create a short, powerful title and 3-4 bullet points of content. Also provide brief speaker notes.
-        
-        Project Idea: "${projectIdea}"
-      `;
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: presentationSchema,
-        thinkingConfig: { thinkingBudget: 0 }
-      },
-    });
-    
-    const jsonText = response.text;
-    if (!jsonText) {
-      throw new Error("Empty response from AI");
-    }
-    const slides = JSON.parse(jsonText) as SlideData[];
-    return slides;
-
-  } catch (error) {
-    console.error("Error generating presentation:", error);
-    throw new Error("Failed to generate presentation from AI. The model may be unavailable or the request was invalid.");
+const codeQualitySchema = {
+  type: Type.OBJECT,
+  properties: {
+    score: { type: Type.NUMBER, minimum: 0, maximum: 100 },
+    metrics: {
+      type: Type.OBJECT,
+      properties: {
+        complexity: { type: Type.NUMBER },
+        maintainability: { type: Type.NUMBER },
+        testability: { type: Type.NUMBER },
+        performance: { type: Type.NUMBER },
+        security: { type: Type.NUMBER }
+      }
+    },
+    suggestions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          type: { type: Type.STRING, enum: ['error', 'warning', 'suggestion'] },
+          message: { type: Type.STRING },
+          line: { type: Type.NUMBER },
+          fix: { type: Type.STRING }
+        }
+      }
+    },
+    bestPractices: { type: Type.ARRAY, items: { type: Type.STRING } }
   }
 };
 
-export const generateRepoStructure = async (projectIdea: string): Promise<RepoNode> => {
+// Advanced rate limiting with circuit breaker pattern
+class AdvancedRateLimiter {
+  private requestQueue: Array<{ timestamp: number; resolve: Function; reject: Function }> = [];
+  private isProcessing = false;
+  private circuitBreaker = {
+    failures: 0,
+    threshold: 5,
+    resetTime: 300000, // 5 minutes
+    lastFailureTime: 0,
+    state: 'closed' as 'closed' | 'open' | 'half-open'
+  };
+
+  constructor(
+    private maxRequestsPerMinute: number = 8,
+    private burstLimit: number = 3,
+    private adaptiveThrottling: boolean = true
+  ) {}
+
+  async waitForSlot(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.circuitBreaker.state === 'open') {
+        const timeSinceFailure = Date.now() - this.circuitBreaker.lastFailureTime;
+        if (timeSinceFailure < this.circuitBreaker.resetTime) {
+          reject(new Error('Circuit breaker is open. Service temporarily unavailable.'));
+          return;
+        }
+        this.circuitBreaker.state = 'half-open';
+      }
+
+      this.requestQueue.push({ timestamp: Date.now(), resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.isProcessing || this.requestQueue.length === 0) return;
+    
+    this.isProcessing = true;
+    
+    while (this.requestQueue.length > 0) {
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      
+      // Clean old requests
+      this.requestQueue = this.requestQueue.filter(req => req.timestamp > oneMinuteAgo);
+      
+      const recentRequests = this.requestQueue.length;
+      
+      if (recentRequests >= this.maxRequestsPerMinute) {
+        const oldestRequest = Math.min(...this.requestQueue.map(r => r.timestamp));
+        const waitTime = oldestRequest + 60000 - now + 1000;
+        
+        if (waitTime > 0) {
+          await this.delay(waitTime);
+          continue;
+        }
+      }
+      
+      const request = this.requestQueue.shift();
+      if (request) {
+        request.resolve();
+        
+        // Adaptive throttling - add delay between requests based on load
+        if (this.adaptiveThrottling && recentRequests > this.burstLimit) {
+          await this.delay(Math.min(2000, recentRequests * 200));
+        }
+      }
+    }
+    
+    this.isProcessing = false;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  recordSuccess(): void {
+    if (this.circuitBreaker.state === 'half-open') {
+      this.circuitBreaker.state = 'closed';
+      this.circuitBreaker.failures = 0;
+    }
+  }
+
+  recordFailure(): void {
+    this.circuitBreaker.failures++;
+    this.circuitBreaker.lastFailureTime = Date.now();
+    
+    if (this.circuitBreaker.failures >= this.circuitBreaker.threshold) {
+      this.circuitBreaker.state = 'open';
+    }
+  }
+}
+
+const rateLimiter = new AdvancedRateLimiter();
+
+// Enhanced retry mechanism with exponential backoff and jitter
+const advancedRetryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    baseDelay?: number;
+    maxDelay?: number;
+    jitter?: boolean;
+    retryCondition?: (error: any) => boolean;
+  } = {}
+): Promise<T> => {
+  const {
+    maxRetries = 5,
+    baseDelay = 1000,
+    maxDelay = 30000,
+    jitter = true,
+    retryCondition = (error) => {
+      const errorString = error?.message?.toLowerCase() || '';
+      return errorString.includes('429') || 
+             errorString.includes('resource_exhausted') ||
+             errorString.includes('quota') ||
+             errorString.includes('timeout') ||
+             errorString.includes('network');
+    }
+  } = options;
+
+  let lastError: any;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await fn();
+      rateLimiter.recordSuccess();
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      rateLimiter.recordFailure();
+      
+      if (!retryCondition(error) || attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      let waitTime = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+      
+      // Add jitter to prevent thundering herd
+      if (jitter) {
+        waitTime += Math.random() * 1000;
+      }
+      
+      console.warn(`Attempt ${attempt + 1}/${maxRetries} failed. Retrying in ${Math.ceil(waitTime / 1000)}s...`, error.message);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  
+  throw lastError;
+};
+
+// Enhanced presentation generation with context awareness
+export const generatePresentation = async (
+  projectIdea: string, 
+  template?: TemplateData,
+  options: {
+    audience?: string;
+    duration?: number;
+    style?: 'professional' | 'casual' | 'technical' | 'creative';
+    includeDemo?: boolean;
+    customRequirements?: string;
+  } = {}
+): Promise<{ slides: SlideData[]; metadata: any }> => {
+  const {
+    audience = 'technical professionals',
+    duration = 10,
+    style = 'professional',
+    includeDemo = true,
+    customRequirements = ''
+  } = options;
+
+  try {
+    await rateLimiter.waitForSlot();
+    
+    const generateContent = async () => {
+      let basePrompt = `
+        You are an elite presentation strategist and storytelling expert with deep expertise in creating compelling technical presentations.
+        
+        CONTEXT ANALYSIS:
+        - Project Idea: "${projectIdea}"
+        - Target Audience: ${audience}
+        - Presentation Duration: ${duration} minutes
+        - Style: ${style}
+        - Include Demo: ${includeDemo}
+        - Custom Requirements: ${customRequirements}
+      `;
+
+      let structurePrompt = '';
+      let slideCount = 5;
+
+      if (template) {
+        slideCount = template.slides.length;
+        structurePrompt = `
+          TEMPLATE-BASED GENERATION:
+          Template: "${template.name}"
+          Description: ${template.description}
+          Category: ${template.category}
+          
+          Required Structure:
+          ${template.slides.map((slide: any, index: number) => `
+          ${index + 1}. ${slide.title}
+             - Purpose: ${slide.content?.join(', ') || 'Create contextually relevant content'}
+             - Expected Impact: High engagement and clear understanding
+          `).join('')}
+        `;
+      } else {
+        structurePrompt = `
+          DEFAULT STRUCTURE - Advanced Pitch Deck:
+          1. Hook & Problem Statement (30-45 seconds)
+             - Start with a compelling statistic, question, or scenario
+             - Clearly articulate the pain point your project addresses
+          
+          2. Solution Overview (60-90 seconds)
+             - Present your project as the elegant solution
+             - Highlight the key innovation or unique approach
+          
+          3. Core Features & Technical Excellence (90-120 seconds)
+             - Showcase 3-4 most impactful features with technical depth
+             - Demonstrate understanding of implementation challenges
+          
+          4. Architecture & Technology Stack (60-90 seconds)
+             - High-level system design and technology choices
+             - Scalability, performance, and reliability considerations
+          
+          5. Impact, Vision & Call to Action (45-60 seconds)
+             - Quantifiable impact and future roadmap
+             - Strong closing with clear next steps
+        `;
+      }
+
+      const advancedPrompt = `${basePrompt}
+        
+        ${structurePrompt}
+        
+        ADVANCED REQUIREMENTS:
+        
+        1. STORYTELLING EXCELLENCE:
+           - Create a narrative arc that builds tension and resolution
+           - Use the "Problem-Agitation-Solution" framework
+           - Include emotional hooks and relatable scenarios
+           - Ensure smooth transitions between slides
+        
+        2. CONTENT SOPHISTICATION:
+           - Each slide should have a clear purpose and measurable outcome
+           - Use concrete examples, metrics, and specific details
+           - Incorporate industry best practices and current trends
+           - Balance technical depth with accessibility for ${audience}
+        
+        3. ENGAGEMENT STRATEGIES:
+           - Include interactive elements or thought-provoking questions
+           - Suggest visual metaphors and compelling graphics
+           - Provide speaker notes with timing, emphasis, and audience interaction cues
+           - Include recovery strategies for potential Q&A scenarios
+        
+        4. PROFESSIONAL POLISH:
+           - Ensure consistent messaging and terminology
+           - Create memorable taglines and key phrases
+           - Include backup slides suggestions for deep-dive questions
+           - Provide alternative explanations for complex concepts
+        
+        Generate exactly ${slideCount} slides with:
+        - Compelling, action-oriented titles that create curiosity
+        - 3-5 bullet points per slide with specific, impactful content
+        - Detailed speaker notes (100-150 words each) with presentation tips
+        - Visual suggestions for maximum impact
+        - Key takeaways for audience retention
+        - Smooth transition suggestions between slides
+        
+        Style Guidelines for "${style}":
+        ${style === 'professional' ? '- Formal tone, data-driven, conservative visuals' :
+          style === 'casual' ? '- Conversational tone, approachable language, friendly visuals' :
+          style === 'technical' ? '- Deep technical detail, architecture diagrams, code examples' :
+          '- Bold statements, creative analogies, innovative visual concepts'}
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: advancedPrompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: presentationSchema,
+          thinkingConfig: { thinkingBudget: 10000 }
+        },
+      });
+
+      const jsonText = response.text;
+      if (!jsonText) {
+        throw new Error("Empty response from AI");
+      }
+
+      const result = JSON.parse(jsonText);
+      return {
+        slides: result.slides,
+        metadata: result.metadata,
+        transitions: result.transitions
+      };
+    };
+
+    return await advancedRetryWithBackoff(generateContent);
+
+  } catch (error: any) {
+    console.error("Error generating presentation:", error);
+    
+    // Enhanced error handling with specific guidance
+    if (error?.message?.includes('429')) {
+      throw new Error("API rate limit exceeded. The service is experiencing high demand. Please try again in a few minutes.");
+    } else if (error?.message?.includes('quota')) {
+      throw new Error("API quota exceeded. Please check your billing settings or try again tomorrow.");
+    } else if (error?.message?.includes('Circuit breaker')) {
+      throw new Error("Service is temporarily unavailable due to repeated failures. Please try again later.");
+    } else {
+      throw new Error(`Presentation generation failed: ${error?.message || 'Unknown error occurred'}`);
+    }
+  }
+};
+
+// Enhanced repository structure generation
+export const generateRepoStructure = async (
+  projectIdea: string,
+  options: {
+    framework?: string;
+    complexity?: 'simple' | 'moderate' | 'complex' | 'enterprise';
+    includeTests?: boolean;
+    includeDocker?: boolean;
+    includeDocs?: boolean;
+    includeCI?: boolean;
+  } = {}
+): Promise<RepoNode> => {
+  const {
+    framework = 'react-vite',
+    complexity = 'moderate',
+    includeTests = true,
+    includeDocker = false,
+    includeDocs = true,
+    includeCI = false
+  } = options;
+
+  try {
+    await rateLimiter.waitForSlot();
+    
+    const generateStructure = async () => {
+      const prompt = `
+        You are a senior software architect and DevOps expert with 15+ years of experience in designing scalable, maintainable software systems.
+        
+        PROJECT CONTEXT:
+        - Project Idea: "${projectIdea}"
+        - Framework: ${framework}
+        - Complexity Level: ${complexity}
+        - Include Tests: ${includeTests}
+        - Include Docker: ${includeDocker}
+        - Include Documentation: ${includeDocs}
+        - Include CI/CD: ${includeCI}
+        
+        ARCHITECTURAL PRINCIPLES:
+        1. Follow industry best practices for ${framework} applications
+        2. Implement proper separation of concerns
+        3. Ensure scalability and maintainability
+        4. Include security considerations
+        5. Follow modern development workflow patterns
+        
+        STRUCTURE REQUIREMENTS:
+        
+        For ${complexity} complexity level:
+        ${complexity === 'simple' ? `
+        - Basic project structure with essential files only
+        - Minimal configuration and dependencies
+        - Single-responsibility components
+        - Basic error handling and validation
+        ` : complexity === 'moderate' ? `
+        - Well-organized feature-based structure
+        - Proper configuration management
+        - Comprehensive component library
+        - Advanced state management
+        - Performance optimization
+        ` : complexity === 'complex' ? `
+        - Microservices-ready architecture
+        - Advanced configuration and environment management
+        - Comprehensive testing strategy
+        - Advanced security implementations
+        - Performance monitoring and analytics
+        ` : `
+        - Enterprise-grade architecture patterns
+        - Multi-environment deployment strategies
+        - Comprehensive observability stack
+        - Advanced security and compliance features
+        - Scalable team collaboration structure
+        `}
+        
+        SPECIFIC REQUIREMENTS:
+        - Root folder named appropriately for the project
+        - Modern ${framework} setup with TypeScript
+        - Proper folder hierarchy with clear purposes
+        - Include all necessary configuration files
+        - Add appropriate README and documentation structure
+        ${includeTests ? '- Comprehensive testing setup (unit, integration, e2e)' : ''}
+        ${includeDocker ? '- Docker containerization setup' : ''}
+        ${includeDocs ? '- Documentation structure with examples' : ''}
+        ${includeCI ? '- CI/CD pipeline configuration' : ''}
+        
+        For each file and folder, provide:
+        - Clear description of its purpose
+        - Priority level (critical/important/optional)
+        - How it fits into the overall architecture
+        
+        Generate a logical, production-ready repository structure that follows modern software engineering practices.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: repoStructureSchema,
+          thinkingConfig: { thinkingBudget: 8000 }
+        },
+      });
+
+      const jsonText = response.text;
+      if (!jsonText) {
+        throw new Error("Empty response from AI");
+      }
+      return JSON.parse(jsonText) as RepoNode;
+    };
+
+    return await advancedRetryWithBackoff(generateStructure);
+
+  } catch (error: any) {
+    console.error("Error generating repository structure:", error);
+    throw new Error(`Repository structure generation failed: ${error?.message || 'Unknown error'}`);
+  }
+};
+
+// Enhanced file content generation with context awareness
+export const generateFileContent = async (
+  projectIdea: string, 
+  structure: RepoNode, 
+  filePath: string,
+  options: {
+    quality?: 'prototype' | 'production' | 'enterprise';
+    includeComments?: boolean;
+    includeTests?: boolean;
+    followBestPractices?: boolean;
+    optimizePerformance?: boolean;
+  } = {}
+): Promise<{ content: string; quality: CodeQuality; suggestions: string[] }> => {
+  const {
+    quality = 'production',
+    includeComments = true,
+    followBestPractices = true,
+    optimizePerformance = true
+  } = options;
+
+  try {
+    await rateLimiter.waitForSlot();
+    
+    const generateContent = async () => {
+      // Analyze file context
+      const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+      const fileName = filePath.split('/').pop() || '';
+      const directory = filePath.substring(0, filePath.lastIndexOf('/')) || '';
+      
+      const isComponent = filePath.includes('component') || filePath.includes('Component') || fileExtension === 'tsx';
+      const isUtil = filePath.includes('util') || filePath.includes('helper');
+      const isService = filePath.includes('service') || filePath.includes('api');
+      const isHook = filePath.includes('hook') || filePath.includes('use');
+      const isConfig = ['json', 'js', 'ts', 'yml', 'yaml', 'toml'].includes(fileExtension) && !isComponent;
+
+      const prompt = `
+        You are an expert software engineer with deep expertise in modern web development, particularly ${fileExtension} files.
+        
+        PROJECT CONTEXT:
+        - Main Project: "${projectIdea}"
+        - Target File: "${filePath}"
+        - File Name: "${fileName}"
+        - Directory: "${directory}"
+        - File Type: ${fileExtension}
+        - Quality Level: ${quality}
+        - Repository Structure: ${JSON.stringify(structure, null, 2)}
+        
+        FILE ANALYSIS:
+        - Is Component: ${isComponent}
+        - Is Utility: ${isUtil}
+        - Is Service: ${isService}
+        - Is Hook: ${isHook}
+        - Is Configuration: ${isConfig}
+        
+        QUALITY REQUIREMENTS FOR "${quality}" LEVEL:
+        ${quality === 'prototype' ? `
+        - Functional but basic implementation
+        - Minimal error handling
+        - Basic structure and organization
+        - Focus on core functionality
+        ` : quality === 'production' ? `
+        - Robust error handling and validation
+        - Comprehensive type safety
+        - Performance optimizations
+        - Security best practices
+        - Maintainable and readable code
+        - Proper documentation
+        ` : `
+        - Enterprise-grade error handling and logging
+        - Advanced type safety with strict TypeScript
+        - Comprehensive performance monitoring
+        - Security hardening and vulnerability prevention
+        - Extensive documentation and examples
+        - Monitoring and observability hooks
+        - Scalability considerations
+        `}
+        
+        TECHNICAL SPECIFICATIONS:
+        
+        ${isComponent ? `
+        COMPONENT REQUIREMENTS:
+        - Functional React component with TypeScript
+        - Proper prop types and interfaces
+        - Error boundaries and fallback UI
+        - Performance optimizations (memo, callback, effect)
+        - Accessibility (ARIA labels, keyboard navigation)
+        - Responsive design considerations
+        - State management best practices
+        - Event handling and lifecycle management
+        ` : ''}
+        
+        ${isService ? `
+        SERVICE REQUIREMENTS:
+        - Proper API client architecture
+        - Request/response type definitions
+        - Error handling and retry logic
+        - Authentication and authorization
+        - Caching and performance optimization
+        - Rate limiting and throttling
+        - Request validation and sanitization
+        ` : ''}
+        
+        ${isUtil ? `
+        UTILITY REQUIREMENTS:
+        - Pure functions with clear inputs/outputs
+        - Comprehensive type definitions
+        - Edge case handling
+        - Performance optimizations
+        - Extensive unit test coverage considerations
+        - Clear documentation and examples
+        ` : ''}
+        
+        ${isHook ? `
+        CUSTOM HOOK REQUIREMENTS:
+        - Proper React hooks rules compliance
+        - Memoization and performance optimization
+        - Cleanup and memory leak prevention
+        - TypeScript generics for reusability
+        - Error handling and loading states
+        - Testing considerations
+        ` : ''}
+        
+        CODE GENERATION INSTRUCTIONS:
+        1. Generate complete, runnable, ${quality}-quality code
+        2. Follow modern ES6+ and TypeScript best practices
+        3. Include ${includeComments ? 'comprehensive JSDoc comments and inline documentation' : 'minimal but clear comments'}
+        4. Implement proper error handling and validation
+        5. Use consistent naming conventions and code organization
+        6. Include import statements that align with the repository structure
+        7. ${optimizePerformance ? 'Optimize for performance and memory usage' : 'Focus on readability and maintainability'}
+        8. ${followBestPractices ? 'Strictly follow industry best practices and design patterns' : 'Use straightforward implementations'}
+        
+        CRITICAL CONSTRAINTS:
+        - Return ONLY the raw source code
+        - NO markdown code blocks or formatting
+        - NO explanations or additional text
+        - Ensure all imports reference files that exist in the repository structure
+        - Make the code production-ready and fully functional
+        - Include proper TypeScript types and interfaces
+        
+        Generate the complete source code for ${filePath}:
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          thinkingConfig: { thinkingBudget: 12000 }
+        }
+      });
+
+      let content = response.text?.trim() || '';
+      
+      // Clean any potential markdown formatting
+      content = content
+        .replace(/^```[\w\-]*\n?/gm, '')
+        .replace(/\n?```$/gm, '')
+        .replace(/```/g, '')
+        .trim();
+
+      // Generate quality analysis
+      const qualityAnalysis = await analyzeCodeQuality(content, filePath);
+      
+      return {
+        content,
+        quality: qualityAnalysis,
+        suggestions: qualityAnalysis.suggestions.map(s => s.message)
+      };
+    };
+
+    return await advancedRetryWithBackoff(generateContent);
+
+  } catch (error: any) {
+    console.error(`Error generating content for ${filePath}:`, error);
+    
+    if (error?.message?.includes('429')) {
+      throw new Error(`Rate limit exceeded for ${filePath}. Please wait and try again.`);
+    } else if (error?.message?.includes('quota')) {
+      throw new Error(`API quota exceeded. Please check your billing or try again later.`);
+    } else {
+      throw new Error(`Failed to generate code for ${filePath}: ${error?.message || 'Unknown error'}`);
+    }
+  }
+};
+
+// Advanced code quality analysis
+const analyzeCodeQuality = async (content: string, filePath: string): Promise<CodeQuality> => {
   try {
     const prompt = `
-      You are a senior software architect. Based on the following project idea, generate a logical and well-structured repository directory.
-      - The root folder should be named after the project idea (e.g., 'my-ai-app').
-      - Include common folders like 'src', 'public', 'components', 'services', 'hooks', 'utils'.
-      - Include standard configuration files like 'package.json', 'README.md', '.gitignore', and a framework-specific config (e.g., 'vite.config.ts' for a React/Vite project).
-      - The structure should be logical for a modern web application, assume a React with Vite setup.
+      You are a senior code reviewer and quality assurance expert. Analyze the following code for quality, best practices, and potential issues.
       
-      Project Idea: "${projectIdea}"
+      File: ${filePath}
+      Code:
+      ${content}
+      
+      Provide a comprehensive quality analysis including:
+      1. Overall quality score (0-100)
+      2. Specific metrics for complexity, maintainability, testability, performance, and security
+      3. Specific suggestions for improvement with line numbers
+      4. Best practices recommendations
     `;
 
     const response = await ai.models.generateContent({
@@ -162,145 +820,63 @@ export const generateRepoStructure = async (projectIdea: string): Promise<RepoNo
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        responseSchema: repoStructureSchema,
+        responseSchema: codeQualitySchema,
       },
     });
 
-    const jsonText = response.text;
-    if (!jsonText) {
-      throw new Error("Empty response from AI");
-    }
-    return JSON.parse(jsonText) as RepoNode;
-
+    return JSON.parse(response.text || '{}');
   } catch (error) {
-    console.error("Error generating repository structure:", error);
-    throw new Error("Failed to generate repository structure from AI.");
+    // Return default quality analysis if analysis fails
+    return {
+      score: 75,
+      metrics: {
+        complexity: 70,
+        maintainability: 80,
+        testability: 75,
+        performance: 75,
+        security: 80
+      },
+      suggestions: [],
+      bestPractices: []
+    };
   }
-}
-
-// Rate limiting configuration
-const RATE_LIMIT = {
-  maxRequestsPerMinute: 8, // Conservative limit, below the 10/min free tier limit
-  requestTimestamps: [] as number[]
 };
 
-// Utility function to wait
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Rate limiter function
-const waitForRateLimit = async () => {
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  
-  // Remove timestamps older than 1 minute
-  RATE_LIMIT.requestTimestamps = RATE_LIMIT.requestTimestamps.filter(
-    timestamp => timestamp > oneMinuteAgo
-  );
-  
-  // If we're at the limit, wait
-  if (RATE_LIMIT.requestTimestamps.length >= RATE_LIMIT.maxRequestsPerMinute) {
-    const oldestRequest = Math.min(...RATE_LIMIT.requestTimestamps);
-    const waitTime = oldestRequest + 60000 - now + 1000; // Add 1 second buffer
+// Utility functions for project analysis
+export const analyzeProjectRequirements = async (projectIdea: string) => {
+  try {
+    await rateLimiter.waitForSlot();
     
-    if (waitTime > 0) {
-      console.log(`Rate limit reached. Waiting ${Math.ceil(waitTime / 1000)} seconds...`);
-      await delay(waitTime);
-    }
+    const prompt = `
+      Analyze the following project idea and provide detailed technical requirements, architecture recommendations, and implementation strategy.
+      
+      Project: "${projectIdea}"
+      
+      Provide analysis for:
+      1. Technical complexity assessment
+      2. Recommended technology stack
+      3. Architecture patterns
+      4. Potential challenges and solutions
+      5. Timeline and resource estimates
+      6. Scalability considerations
+      7. Security requirements
+      8. Performance optimization strategies
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    return response.text;
+  } catch (error) {
+    throw new Error(`Project analysis failed: ${error}`);
   }
-  
-  // Record this request
-  RATE_LIMIT.requestTimestamps.push(now);
 };
 
-// Retry function with exponential backoff
-const retryWithBackoff = async <T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> => {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      const isRateLimit = error?.message?.includes('429') || 
-                         error?.message?.includes('RESOURCE_EXHAUSTED') ||
-                         error?.message?.includes('quota');
-      
-      if (isRateLimit && attempt < maxRetries - 1) {
-        const waitTime = baseDelay * Math.pow(2, attempt); // Exponential backoff
-        console.log(`Rate limit hit, retrying in ${waitTime / 1000} seconds... (attempt ${attempt + 1}/${maxRetries})`);
-        await delay(waitTime);
-        continue;
-      }
-      
-      throw error;
-    }
-  }
-  throw new Error('Max retries exceeded');
-};
-
-export const generateFileContent = async (projectIdea: string, structure: RepoNode, filePath: string): Promise<string> => {
-    try {
-        // Wait for rate limit before making request
-        await waitForRateLimit();
-        
-        // Helper function to clean markdown code blocks from generated content
-        const cleanCodeContent = (content: string): string => {
-            // Remove markdown code blocks (```language and ```)
-            return content
-                .replace(/^```[\w\-]*\n?/gm, '') // Remove opening code blocks
-                .replace(/\n?```$/gm, '') // Remove closing code blocks
-                .replace(/```/g, '') // Remove any remaining triple backticks
-                .trim();
-        };
-        
-        const generateContent = async () => {
-            const prompt = `
-            You are an expert software developer specializing in React and TypeScript.
-            Your task is to generate the complete and correct code for a single file within a larger project.
-
-            Project Context:
-            - Main Idea: "${projectIdea}"
-            - Full Repository Structure: ${JSON.stringify(structure, null, 2)}
-            - Target File Path: "${filePath}"
-
-            Instructions:
-            - Generate the full, runnable source code for the specified file path.
-            - The code should be production-quality, clean, and follow modern best practices.
-            - Ensure the generated code is consistent with the other files in the repository structure (e.g., import paths, component names).
-            - For a 'package.json', include necessary dependencies like 'react', 'react-dom', 'vite', 'tailwindcss', etc.
-            - For components, generate functional React components with TypeScript.
-            - For CSS or style files, provide appropriate styles for a modern, clean UI.
-            
-            CRITICAL: Return ONLY the raw source code for the file. NO markdown code blocks, NO explanations, NO additional text. Just the pure code content.
-            `;
-
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-            });
-
-            const responseText = response.text;
-            if (!responseText) {
-                throw new Error("Empty response from AI");
-            }
-            
-            // Clean any markdown formatting that might be present
-            return cleanCodeContent(responseText);
-        };
-
-        return await retryWithBackoff(generateContent);
-
-    } catch (error: any) {
-        console.error(`Error generating content for ${filePath}:`, error);
-        
-        // Provide more specific error messages
-        if (error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-            throw new Error(`Rate limit exceeded for ${filePath}. Please wait a moment and try again.`);
-        } else if (error?.message?.includes('quota')) {
-            throw new Error(`API quota exceeded for ${filePath}. Please check your billing or try again later.`);
-        } else {
-            throw new Error(`Failed to generate code for file: ${filePath}. ${error?.message || 'Unknown error'}`);
-        }
-    }
+// Export enhanced utilities
+export {
+  AdvancedRateLimiter,
+  advancedRetryWithBackoff,
+  analyzeCodeQuality
 };

@@ -5,19 +5,23 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "env": {
-    "VITE_API_KEY": "@vite_api_key"
+    "VITE_API_KEY": "@gemini-api-key"
   },
-  "functions": {
-    "app.js": {
-      "maxDuration": 30
-    }
-  },
-  "routes": [
+  "headers": [
     {
-      "src": "/assets/(.*)",
-      "headers": {
-        "cache-control": "max-age=31536000, immutable"
-      }
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
