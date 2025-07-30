@@ -4,9 +4,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "env": {
-    "VITE_API_KEY": "@gemini-api-key"
-  },
   "headers": [
     {
       "source": "/assets/(.*)",
