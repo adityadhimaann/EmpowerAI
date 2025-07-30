@@ -77,9 +77,11 @@ The project includes a `vercel.json` file with optimized settings:
    - Test the presentation generation functionality
    - Check browser console for any errors
 
-2. **Custom Domain** (Optional):
+2. **Custom Domain Setup**:
    - In Vercel dashboard, go to your project settings
-   - Add your custom domain under "Domains"
+   - Navigate to "Domains" tab
+   - Add your custom domain: `empowerai.dev`
+   - Configure DNS records in Name.com dashboard
 
 3. **Performance Optimization**:
    - Enable Analytics in Vercel dashboard
@@ -112,6 +114,129 @@ The current build size might trigger Vercel warnings. Consider:
 - API key is properly prefixed with `VITE_` for client-side access
 - Consider implementing rate limiting for production use
 - Monitor API usage in Google AI Studio
+
+## Custom Domain Setup (empowerai.dev)
+
+### Step 1: Add Domain in Vercel Dashboard
+
+1. **Go to Your Project**:
+   - Visit: https://vercel.com/adityadhimaanns-projects/empower-ai
+   - Click on "Settings" tab
+   - Navigate to "Domains" section
+
+2. **Add Your Domain**:
+   - Click "Add Domain"
+   - Enter: `empowerai.dev`
+   - Click "Add"
+
+3. **Configure Subdomains** (Optional but Recommended):
+   - Add `www.empowerai.dev` as well
+   - This ensures both www and non-www versions work
+
+### Step 2: Configure DNS at Name.com
+
+1. **Login to Name.com**:
+   - Go to [name.com](https://name.com) and login
+   - Navigate to your domain: `empowerai.dev`
+   - Go to "DNS Records" or "Manage DNS"
+
+2. **Add DNS Records**:
+   
+   **For Root Domain (empowerai.dev):**
+   ```
+   Type: A
+   Host: @
+   Value: 76.76.19.19
+   TTL: 3600 (or Auto)
+   ```
+
+   **For WWW Subdomain (www.empowerai.dev):**
+   ```
+   Type: CNAME
+   Host: www
+   Value: cname.vercel-dns.com
+   TTL: 3600 (or Auto)
+   ```
+
+   **Alternative - Use CNAME for Root (if Name.com supports ALIAS/ANAME):**
+   ```
+   Type: CNAME (or ALIAS/ANAME)
+   Host: @
+   Value: cname.vercel-dns.com
+   TTL: 3600
+   ```
+
+3. **Save DNS Changes**:
+   - Save all DNS record changes
+   - DNS propagation can take 24-48 hours, but usually works within 1-2 hours
+
+### Step 3: Verify Domain Setup
+
+1. **Check Vercel Dashboard**:
+   - Return to your Vercel project settings
+   - In the "Domains" section, you should see verification status
+   - Wait for "Valid Configuration" status
+
+2. **Test Your Domain**:
+   ```bash
+   # Check DNS propagation
+   nslookup empowerai.dev
+   nslookup www.empowerai.dev
+   
+   # Test with curl
+   curl -I https://empowerai.dev
+   curl -I https://www.empowerai.dev
+   ```
+
+3. **SSL Certificate**:
+   - Vercel automatically provisions SSL certificates
+   - This may take a few minutes after DNS propagation
+
+### Step 4: Configure Domain Redirects (Optional)
+
+You can set up redirects to ensure all traffic goes to your preferred domain:
+
+1. **In Vercel Dashboard**:
+   - Go to your project settings
+   - Navigate to "Domains"
+   - Click on the domain you want to redirect FROM
+   - Select "Redirect to" and choose your primary domain
+
+**Recommended Setup:**
+- Primary: `empowerai.dev` (main domain)
+- Redirect: `www.empowerai.dev` → `empowerai.dev`
+
+### DNS Configuration Summary
+
+Here's what your Name.com DNS records should look like:
+
+| Type  | Host | Value                | TTL  | Purpose                    |
+|-------|------|----------------------|------|----------------------------|
+| A     | @    | 76.76.19.19         | 3600 | Root domain to Vercel      |
+| CNAME | www  | cname.vercel-dns.com | 3600 | WWW subdomain to Vercel    |
+
+### Troubleshooting Domain Issues
+
+1. **Domain Not Verifying**:
+   - Double-check DNS records in Name.com
+   - Wait for DNS propagation (up to 48 hours)
+   - Use online DNS checkers: whatsmydns.net
+
+2. **SSL Certificate Issues**:
+   - Wait 10-15 minutes after DNS verification
+   - SSL certificates are auto-provisioned by Vercel
+   - Contact Vercel support if issues persist
+
+3. **Redirect Issues**:
+   - Clear browser cache
+   - Test in incognito/private mode
+   - Check redirect configuration in Vercel dashboard
+
+### Expected Timeline
+- **DNS Setup**: 5-10 minutes
+- **DNS Propagation**: 1-2 hours (up to 48 hours)
+- **SSL Certificate**: 5-15 minutes after DNS verification
+- **Total Time**: Usually 1-3 hours for everything to work
 
 ## Support
 If you encounter issues:
