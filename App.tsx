@@ -391,14 +391,26 @@ const App: React.FC = () => {
         </main>
         
         {/* Footer */}
-        <footer className="relative z-20 flex items-center justify-between py-3 px-4 border-t border-white/10 mt-auto">
-          <div className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300">
-            <span>Design and Developed by</span>
-            <span className="font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent hover:from-blue-300 hover:to-indigo-300 transition-all duration-300">
-              adidev
-            </span>
+        <footer className="relative z-20 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 py-3 px-4 border-t border-white/10 mt-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-sm text-white/70">
+            <div className="flex items-center gap-2 hover:text-white transition-colors duration-300">
+              <span>Design and Developed by</span>
+              <span className="font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent hover:from-blue-300 hover:to-indigo-300 transition-all duration-300">
+                adidev
+              </span>
+            </div>
+            <div className="hidden sm:block text-white/40">•</div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/60">Contact:</span>
+              <a 
+                href="mailto:aditya@empowerai.dev" 
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors duration-300 hover:underline"
+              >
+                aditya@empowerai.dev
+              </a>
+            </div>
           </div>
-          <div className="text-sm text-white/60">
+          <div className="text-sm text-white/60 text-center sm:text-right">
             © 2025 EmpowerAI. All rights reserved.
           </div>
         </footer>
